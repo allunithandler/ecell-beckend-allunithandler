@@ -11,6 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Camera, Download, Loader2, User, Wifi, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import IdCardMockup from "@/components/IdCardMockup";
+import { ProfileNameInput } from "@/components/ProfileNameInput";
+import { useProfileCache } from "@/stores/profileCache";
+import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 
 interface Profile {
   id: string;
@@ -22,6 +25,7 @@ interface Profile {
   photo_url: string | null;
   phone: string | null;
   department: string | null;
+  name: string | null;
 }
 
 const Profile = () => {
@@ -36,6 +40,7 @@ const Profile = () => {
   const [showBack, setShowBack] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { profile: cachedProfile, setProfile: setCachedProfile, isStale } = useProfileCache();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -43,9 +48,11 @@ const Profile = () => {
     department: "",
   });
   const [phoneChangedOnce, setPhoneChangedOnce] = useState(false);
+  const isTechnicalAdmin = ((profile?.title || "").toLowerCase().includes("technical") && (profile?.title || "").toLowerCase().includes("admin"));
 
   useEffect(() => {
     fetchProfile();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProfile = async () => {
@@ -57,6 +64,26 @@ const Profile = () => {
       }
 
       setEmail(user.email || "");
+      
+      // Check cache first
+      if (cachedProfile && !isStale()) {
+        setProfile({
+          id: cachedProfile.ecell_id || "",
+          user_id: user.id,
+          role: cachedProfile.role || "",
+          year: 0,
+          title: "",
+          ecell_id: cachedProfile.ecell_id || "",
+          photo_url: cachedProfile.photo_url || null,
+          phone: "",
+          department: "",
+          name: cachedProfile.name || "",
+        });
+        setUserName(cachedProfile.name || "");
+        setLoading(false);
+        return;
+      }
+
       const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
       const metaName = typeof metadata.name === "string" ? metadata.name : (typeof metadata.full_name === "string" ? metadata.full_name : "");
       setUserName(metaName || "");
@@ -69,7 +96,21 @@ const Profile = () => {
 
       if (error) throw error;
 
-      setProfile(data);
+      type SupabaseProfileRow = Tables<'profiles'> & { name?: string | null };
+      const row = data as SupabaseProfileRow;
+      const profileData: Profile = { ...row, name: row.name ?? null };
+      setProfile(profileData);
+      setUserName(profileData.name || userName || "");
+      
+      // Update cache
+      setCachedProfile({
+        name: profileData.name || null,
+        role: profileData.role || null,
+        ecell_id: profileData.ecell_id || null,
+        photo_url: profileData.photo_url || null,
+        lastUpdated: Date.now(),
+      });
+      
       setFormData({
         title: data.title || "",
         phone: data.phone || "",
@@ -96,6 +137,14 @@ const Profile = () => {
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
+      if (profile?.photo_url && !isTechnicalAdmin) {
+        toast({
+          title: "Photo change blocked",
+          description: "Only Technical Admin can change photo once set",
+          variant: "destructive",
+        });
+        return;
+      }
       const file = event.target.files?.[0];
       if (!file) return;
 
@@ -153,25 +202,20 @@ const Profile = () => {
       setSaving(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const isTechnicalAdmin = (profile?.role || "").toLowerCase() === "technical_admin";
+      const isTechnicalAdminLocal = ((profile?.title || "").toLowerCase().includes("technical") && (profile?.title || "").toLowerCase().includes("admin"));
 
       const willChangePhone = formData.phone !== (profile?.phone || "");
-      if (willChangePhone && phoneChangedOnce && !isTechnicalAdmin) {
+      if (willChangePhone && profile?.phone && !isTechnicalAdminLocal) {
         toast({
           title: "Phone change blocked",
           description: "Phone number can only be changed once. Contact Admin for further changes.",
           variant: "destructive",
         });
-        try {
-          localStorage.setItem(`phoneChangeRequestPending:${profile?.id}`, "true");
-        } catch (e) {
-          console.warn("Failed to set phoneChangeRequestPending", e);
-        }
         return;
       }
 
       const updates: Record<string, unknown> = {};
-      if (isTechnicalAdmin) {
+      if (isTechnicalAdminLocal) {
         updates.title = formData.title || null;
         updates.department = formData.department || null;
       }
@@ -293,6 +337,9 @@ const Profile = () => {
             <CardTitle>Profile Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-600">
+              You can enter your Details once. After that only Technical Admin can change it.
+            </div>
             {/* Photo Upload */}
             <div className="flex flex-col items-center space-y-4">
               <div className="relative">
@@ -307,7 +354,7 @@ const Profile = () => {
                   variant="secondary"
                   className="absolute bottom-0 right-0 rounded-full"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
+                  disabled={uploading || (!!profile.photo_url && !isTechnicalAdmin)}
                 >
                   {uploading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -333,6 +380,32 @@ const Profile = () => {
 
             {/* Form Fields */}
             <div className="space-y-4">
+              {/* Name Field */}
+              <ProfileNameInput
+                initialValue={profile.name || userName || ""}
+                onSave={async (name) => {
+                  type ProfileUpdateWithName = TablesUpdate<'profiles'> & { name?: string | null };
+                  const payload: ProfileUpdateWithName = { name };
+                  const { error } = await supabase
+                    .from("profiles")
+                    .update(payload)
+                    .eq("user_id", profile.user_id);
+                  if (error) throw error;
+                  setProfile((prev) => prev ? { ...prev, name } : null);
+                  setUserName(name);
+                  // Update cache
+                  setCachedProfile({
+                    name,
+                    role: profile.role,
+                    ecell_id: profile.ecell_id,
+                    photo_url: profile.photo_url,
+                    lastUpdated: Date.now(),
+                  });
+                }}
+                disabled={Boolean(profile.name) && !isTechnicalAdmin}
+              />
+
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" value={email} disabled />
@@ -372,6 +445,7 @@ const Profile = () => {
                   placeholder="+91 9876543210"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  disabled={!!profile.phone && !isTechnicalAdmin}
                 />
               </div>
 

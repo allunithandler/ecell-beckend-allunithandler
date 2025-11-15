@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ const Auth = () => {
   
 
   useEffect(() => {
-    const resolveRedirect = async (session: any) => {
+    const resolveRedirect = async (session: Session | null) => {
       if (!session) return;
       const userId = session.user?.id;
       if (!userId) {
@@ -45,13 +46,7 @@ const Auth = () => {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        await resolveRedirect(session);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {};
   }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -59,15 +54,31 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
       });
 
       if (error) throw error;
+      const userId = data.user?.id;
+      if (userId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (profile?.role === "MEMBER") {
+          navigate("/events");
+        } else {
+          navigate("/attendance");
+        }
+      } else {
+        navigate("/events");
+      }
       toast.success("Logged in successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to login");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to login";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

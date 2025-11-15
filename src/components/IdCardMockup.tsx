@@ -96,6 +96,16 @@ const IdCardMockup = forwardRef<HTMLDivElement, IdCardMockupProps>(function IdCa
               <Badge className={badgeColorClass}>{badgeLabel}</Badge>
             </div>
 
+            {/* GLA Logo - Bottom Right */}
+            <div className="absolute bottom-4 right-4 z-10">
+              <img 
+                src="/gla logo.ico" 
+                alt="GLA Logo" 
+                className="w-20 h-30 object-contain opacity-80"
+                style={{ padding: '10px' }}
+              />
+            </div>
+
             {/* Main */}
             <div className="relative z-10 mt-4 px-5 flex items-center gap-4">
               <Avatar className="h-16 w-16 ring-2 ring-gray-300/70 shadow-md rounded-full">
@@ -105,7 +115,7 @@ const IdCardMockup = forwardRef<HTMLDivElement, IdCardMockupProps>(function IdCa
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <div className="text-white font-semibold tracking-tight">{name}</div>
+                <div className="text-white font-semibold tracking-tight text-sm md:text-base">{name}</div>
                 <div className="text-xs text-gray-300">Membership No: {membershipNo}</div>
                 <div className="text-xs text-gray-400">Position: {expiryLabel}</div>
               </div>

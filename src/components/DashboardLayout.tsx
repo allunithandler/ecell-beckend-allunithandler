@@ -15,6 +15,7 @@ import {
   Menu
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useProfileCache } from "@/stores/profileCache";
 import ThemeToggle from "@/components/ThemeToggle";
 import { toast } from "sonner";
 
@@ -73,10 +74,21 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const { clearProfile } = useProfileCache();
+
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast.success("Logged out successfully");
-    navigate("/auth");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast.error("Failed to logout. Please try again");
+        return;
+      }
+      clearProfile();
+      toast.success("Logged out successfully");
+      navigate("/auth");
+    } catch {
+      toast.error("Failed to logout. Please try again");
+    }
   };
 
   const getMenuItems = () => {
