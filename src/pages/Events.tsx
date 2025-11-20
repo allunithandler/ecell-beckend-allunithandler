@@ -308,210 +308,227 @@ const Events = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-end items-center">
-        {canManageEvents && (
-          <Dialog open={isCreateOpen} onOpenChange={(open) => {
-            setIsCreateOpen(open);
-            if (!open) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Event
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{editingEvent ? "Edit Event" : "Create New Event"}</DialogTitle>
-                <DialogDescription>
-                  {editingEvent ? "Update event details" : "Fill in the event information"}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Event Title *</Label>
-                  <Input
-                    id="title"
-                    placeholder="E-Summit 2025"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Event description..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="event_date">Event Date & Time *</Label>
-                  <Input
-                    id="event_date"
-                    type="datetime-local"
-                    value={formData.event_date}
-                    onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    placeholder="Main Auditorium"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Cover Image</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                    >
-                      {uploading ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="mr-2 h-4 w-4" />
-                      )}
-                      Upload Image
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageUpload}
+    <div className="min-h-screen bg-black">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header Section */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Events</h1>
+            <p className="text-gray-400">Upcoming E-Cell events and activities</p>
+          </div>
+          {canManageEvents && (
+            <Dialog open={isCreateOpen} onOpenChange={(open) => {
+              setIsCreateOpen(open);
+              if (!open) resetForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Event
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-zinc-900 border-zinc-800">
+                <DialogHeader>
+                  <DialogTitle className="text-white">{editingEvent ? "Edit Event" : "Create New Event"}</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    {editingEvent ? "Update event details" : "Fill in the event information"}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title" className="text-gray-300">Event Title *</Label>
+                    <Input
+                      id="title"
+                      placeholder="E-Summit 2025"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="bg-zinc-800 border-zinc-700"
                     />
                   </div>
-                  {formData.cover_url && (
-                    <img
-                      src={formData.cover_url}
-                      alt="Cover preview"
-                      className="mt-2 rounded-lg max-h-40 object-cover"
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-gray-300">Description</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Event description..."
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={4}
+                      className="bg-zinc-800 border-zinc-700"
                     />
-                  )}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSubmit} disabled={saving || !formData.title || !formData.event_date}>
-                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {editingEvent ? "Update" : "Create"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
-      {events.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Calendar className="h-16 w-16 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium text-muted-foreground">No events yet</p>
-            {canManageEvents && <p className="text-sm text-muted-foreground">Create your first event to get started</p>}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {events.map((event) => (
-            <Card key={event.id} className="overflow-hidden">
-              {event.cover_url && (
-                <div className="h-48 overflow-hidden">
-                  <img
-                    src={event.cover_url}
-                    alt={event.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-              <CardHeader>
-                <CardTitle className="flex justify-between items-start">
-                  <span>{event.title}</span>
-                  {canManageEvents && (
-                    <div className="flex gap-1">
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="event_date" className="text-gray-300">Event Date & Time *</Label>
+                    <Input
+                      id="event_date"
+                      type="datetime-local"
+                      value={formData.event_date}
+                      onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                      className="bg-zinc-800 border-zinc-700"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="location" className="text-gray-300">Location</Label>
+                    <Input
+                      id="location"
+                      placeholder="Main Auditorium"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      className="bg-zinc-800 border-zinc-700"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-300">Cover Image</Label>
+                    <div className="flex gap-2">
                       <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => openEditDialog(event)}
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="border-zinc-700 hover:bg-zinc-800"
                       >
-                        <Pencil className="h-4 w-4" />
+                        {uploading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Upload className="mr-2 h-4 w-4" />
+                        )}
+                        Upload Image
                       </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleDelete(event.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                      />
                     </div>
-                  )}
-                </CardTitle>
-                <CardDescription className="line-clamp-2">
-                  {event.description || "No description"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {format(new Date(event.event_date), "PPP 'at' p")}
+                    {formData.cover_url && (
+                      <img
+                        src={formData.cover_url}
+                        alt="Cover preview"
+                        className="mt-2 rounded-lg max-h-40 object-cover border border-zinc-700"
+                      />
+                    )}
+                  </div>
                 </div>
-                {event.location && (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <MapPin className="mr-2 h-4 w-4" />
-                    {event.location}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="border-zinc-700 hover:bg-zinc-800">
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSubmit} disabled={saving || !formData.title || !formData.event_date} className="bg-primary hover:bg-primary/90">
+                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {editingEvent ? "Update" : "Create"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+
+        {events.length === 0 ? (
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <div className="h-20 w-20 rounded-full bg-zinc-800 flex items-center justify-center mb-4">
+                <Calendar className="h-10 w-10 text-gray-600" />
+              </div>
+              <p className="text-lg font-medium text-white mb-1">No events yet</p>
+              {canManageEvents && <p className="text-sm text-gray-400">Create your first event to get started</p>}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {events.map((event) => (
+              <Card key={event.id} className="bg-zinc-900 border-zinc-800 shadow-xl overflow-hidden hover:border-primary/30 transition-all duration-300">
+                {event.cover_url && (
+                  <div className="h-48 overflow-hidden bg-zinc-800">
+                    <img
+                      src={event.cover_url}
+                      alt={event.title}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
                   </div>
                 )}
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Users className="mr-2 h-4 w-4" />
-                  {event.participants_count} participants
-                </div>
-              </CardContent>
-              <CardFooter className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant={userRSVPs[event.id] === "GOING" ? "default" : "outline"}
-                  onClick={() => handleRSVP(event.id, "GOING")}
-                  className="flex-1"
-                >
-                  <CheckCircle2 className="mr-1 h-4 w-4" />
-                  Going
-                </Button>
-                <Button
-                  size="sm"
-                  variant={userRSVPs[event.id] === "MAYBE" ? "default" : "outline"}
-                  onClick={() => handleRSVP(event.id, "MAYBE")}
-                  className="flex-1"
-                >
-                  <HelpCircle className="mr-1 h-4 w-4" />
-                  Maybe
-                </Button>
-                <Button
-                  size="sm"
-                  variant={userRSVPs[event.id] === "NOT_GOING" ? "default" : "outline"}
-                  onClick={() => handleRSVP(event.id, "NOT_GOING")}
-                  className="flex-1"
-                >
-                  <XCircle className="mr-1 h-4 w-4" />
-                  No
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
+                <CardHeader className="border-b border-zinc-800">
+                  <CardTitle className="flex justify-between items-start text-white">
+                    <span>{event.title}</span>
+                    {canManageEvents && (
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => openEditDialog(event)}
+                          className="h-8 w-8 hover:bg-zinc-800"
+                        >
+                          <Pencil className="h-4 w-4 text-gray-400" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDelete(event.id)}
+                          className="h-8 w-8 hover:bg-zinc-800"
+                        >
+                          <Trash2 className="h-4 w-4 text-gray-400" />
+                        </Button>
+                      </div>
+                    )}
+                  </CardTitle>
+                  <CardDescription className="line-clamp-2 text-gray-400">
+                    {event.description || "No description"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-4">
+                  <div className="flex items-center text-sm text-gray-400">
+                    <Calendar className="mr-2 h-4 w-4 text-primary" />
+                    {format(new Date(event.event_date), "PPP 'at' p")}
+                  </div>
+                  {event.location && (
+                    <div className="flex items-center text-sm text-gray-400">
+                      <MapPin className="mr-2 h-4 w-4 text-primary" />
+                      {event.location}
+                    </div>
+                  )}
+                  <div className="flex items-center text-sm text-gray-400">
+                    <Users className="mr-2 h-4 w-4 text-primary" />
+                    {event.participants_count} participants
+                  </div>
+                </CardContent>
+                <CardFooter className="flex gap-2 border-t border-zinc-800 pt-4">
+                  <Button
+                    size="sm"
+                    variant={userRSVPs[event.id] === "GOING" ? "default" : "outline"}
+                    onClick={() => handleRSVP(event.id, "GOING")}
+                    className={userRSVPs[event.id] === "GOING" ? "flex-1 bg-green-600 hover:bg-green-700" : "flex-1 border-zinc-700 hover:bg-zinc-800"}
+                  >
+                    <CheckCircle2 className="mr-1 h-4 w-4" />
+                    Going
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={userRSVPs[event.id] === "MAYBE" ? "default" : "outline"}
+                    onClick={() => handleRSVP(event.id, "MAYBE")}
+                    className={userRSVPs[event.id] === "MAYBE" ? "flex-1 bg-primary hover:bg-primary/90" : "flex-1 border-zinc-700 hover:bg-zinc-800"}
+                  >
+                    <HelpCircle className="mr-1 h-4 w-4" />
+                    Maybe
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={userRSVPs[event.id] === "NOT_GOING" ? "default" : "outline"}
+                    onClick={() => handleRSVP(event.id, "NOT_GOING")}
+                    className={userRSVPs[event.id] === "NOT_GOING" ? "flex-1 bg-red-600 hover:bg-red-700" : "flex-1 border-zinc-700 hover:bg-zinc-800"}
+                  >
+                    <XCircle className="mr-1 h-4 w-4" />
+                    No
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

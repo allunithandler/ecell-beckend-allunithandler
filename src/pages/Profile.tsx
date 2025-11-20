@@ -52,7 +52,7 @@ const Profile = () => {
 
   useEffect(() => {
     fetchProfile();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProfile = async () => {
@@ -64,7 +64,7 @@ const Profile = () => {
       }
 
       setEmail(user.email || "");
-      
+
       // Check cache first
       if (cachedProfile && !isStale()) {
         setProfile({
@@ -101,7 +101,7 @@ const Profile = () => {
       const profileData: Profile = { ...row, name: row.name ?? null };
       setProfile(profileData);
       setUserName(profileData.name || userName || "");
-      
+
       // Update cache
       setCachedProfile({
         name: profileData.name || null,
@@ -110,7 +110,7 @@ const Profile = () => {
         photo_url: profileData.photo_url || null,
         lastUpdated: Date.now(),
       });
-      
+
       setFormData({
         title: data.title || "",
         phone: data.phone || "",
@@ -328,189 +328,261 @@ const Profile = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-black">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Profile Settings</h1>
+          <p className="text-gray-400">Manage your E-Cell identity and credentials</p>
+        </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Profile Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-600">
-              You can enter your Details once. After that only Technical Admin can change it.
-            </div>
-            {/* Photo Upload */}
-            <div className="flex flex-col items-center space-y-4">
-              <div className="relative">
-                <Avatar className="h-32 w-32">
-                  <AvatarImage src={profile.photo_url || ""} />
-                  <AvatarFallback className="text-3xl">
-                    <User className="h-16 w-16" />
-                  </AvatarFallback>
-                </Avatar>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Profile Information Card */}
+          <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
+            <CardHeader className="border-b border-zinc-800">
+              <CardTitle className="text-xl font-semibold text-white flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Profile Information
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-6 pt-6">
+              {/* Warning Banner */}
+              <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
+                <div className="flex items-start gap-3">
+                  <Wifi className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-orange-200/90 leading-relaxed">
+                    You can enter your details once. After that, only Technical Admin can modify them.
+                  </p>
+                </div>
+              </div>
+
+              {/* Photo Upload Section */}
+              <div className="flex flex-col items-center space-y-4 py-4">
+                <div className="relative group/avatar">
+                  <Avatar className="h-32 w-32 ring-2 ring-primary/20 shadow-lg transition-all duration-300 group-hover/avatar:ring-primary/40">
+                    <AvatarImage src={profile.photo_url || ""} className="object-cover" />
+                    <AvatarFallback className="text-4xl bg-zinc-800">
+                      <User className="h-16 w-16 text-zinc-600" />
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <Button
+                    size="icon"
+                    className="absolute -bottom-2 -right-2 h-10 w-10 rounded-full bg-primary hover:bg-primary/90 shadow-lg transition-all duration-300 hover:scale-110 disabled:opacity-50"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading || (!!profile.photo_url && !isTechnicalAdmin)}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-white" />
+                    ) : (
+                      <Camera className="h-4 w-4 text-white" />
+                    )}
+                  </Button>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </div>
+
+                <div className="text-center space-y-2">
+                  <Badge className={cn(
+                    "px-3 py-1 text-sm font-medium",
+                    roleCardTheme(profile.role).badge
+                  )}>
+                    {profile.role.replace(/_/g, ' ')}
+                  </Badge>
+                  <p className="text-sm text-gray-400">Year {profile.year}</p>
+                </div>
+              </div>
+
+              {/* Form Fields */}
+              <div className="space-y-4">
+                {/* Name Field */}
+                <div className="space-y-2">
+                  <ProfileNameInput
+                    initialValue={profile.name || userName || ""}
+                    onSave={async (name) => {
+                      type ProfileUpdateWithName = TablesUpdate<'profiles'> & { name?: string | null };
+                      const payload: ProfileUpdateWithName = { name };
+                      const { error } = await supabase
+                        .from("profiles")
+                        .update(payload)
+                        .eq("user_id", profile.user_id);
+                      if (error) throw error;
+                      setProfile((prev) => prev ? { ...prev, name } : null);
+                      setUserName(name);
+                      setCachedProfile({
+                        name,
+                        role: profile.role,
+                        ecell_id: profile.ecell_id,
+                        photo_url: profile.photo_url,
+                        lastUpdated: Date.now(),
+                      });
+                    }}
+                    disabled={Boolean(profile.name) && !isTechnicalAdmin}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-300">Email</Label>
+                  <Input
+                    id="email"
+                    value={email}
+                    disabled
+                    className="bg-zinc-800 border-zinc-700 text-gray-300"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ecell-id" className="text-sm font-medium text-gray-300">E-Cell ID</Label>
+                  <Input
+                    id="ecell-id"
+                    value={profile.ecell_id || "Not assigned"}
+                    disabled
+                    className="bg-zinc-800 border-zinc-700 text-gray-300 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="title" className="text-sm font-medium text-gray-300">Position</Label>
+                  <Input
+                    id="title"
+                    placeholder="e.g., Technical Lead"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    disabled={(profile?.role || "").toLowerCase() !== "technical_admin"}
+                    className="bg-zinc-800 border-zinc-700 focus:border-primary disabled:opacity-50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="department" className="text-sm font-medium text-gray-300">Department</Label>
+                  <Input
+                    id="department"
+                    placeholder="e.g., Technology"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    disabled={(profile?.role || "").toLowerCase() !== "technical_admin"}
+                    className="bg-zinc-800 border-zinc-700 focus:border-primary disabled:opacity-50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm font-medium text-gray-300">Phone</Label>
+                  <Input
+                    id="phone"
+                    placeholder="+91 9876543210"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    disabled={!!profile.phone && !isTechnicalAdmin}
+                    className="bg-zinc-800 border-zinc-700 focus:border-primary disabled:opacity-50"
+                  />
+                </div>
+
                 <Button
-                  size="icon"
-                  variant="secondary"
-                  className="absolute bottom-0 right-0 rounded-full"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading || (!!profile.photo_url && !isTechnicalAdmin)}
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-5 shadow-lg transition-all duration-200 disabled:opacity-50"
                 >
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Camera className="h-4 w-4" />
-                  )}
+                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {saving ? "Saving..." : "Save Changes"}
                 </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
               </div>
-              <div className="text-center">
-                <Badge className={cn("mb-2", roleCardTheme(profile.role).badge)}>
-                  {profile.role}
+            </CardContent>
+          </Card>
+
+          {/* Digital ID Card */}
+          <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
+            <CardHeader className="border-b border-zinc-800">
+              <CardTitle className="text-xl font-semibold text-white flex items-center gap-2">
+                <Badge className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">
+                  ID
                 </Badge>
-                <p className="text-sm text-muted-foreground">Year {profile.year}</p>
+                Digital ID Card
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                {/* ID Card Display */}
+                <div className="relative">
+                  <div
+                    ref={idCardRef}
+                    className="transition-transform duration-300 hover:scale-[1.02]"
+                  >
+                    {
+                      (() => {
+                        const nameFromEmail = (email: string) => {
+                          const base = email.split("@")[0].replace(/[._-]+/g, " ");
+                          return base.replace(/\b\w/g, (c) => c.toUpperCase());
+                        };
+                        const name = userName || nameFromEmail(email);
+                        const membershipNo = profile.ecell_id || "ECELL-XXXX";
+                        const expiryLabel = formData.title || profile.title || "";
+                        const tier = profile.role === "MENTOR" ? "Platinum" : profile.role === "COMMITTEE" || profile.role === "DEPT_HEAD" ? "Gold" : "Silver";
+
+                        return (
+                          <IdCardMockup
+                            name={name}
+                            membershipNo={membershipNo}
+                            expiryLabel={expiryLabel}
+                            tier={tier}
+                            role={profile.role}
+                            photoUrl={profile.photo_url || undefined}
+                            contactEmail="lostcard@yourcompany.com"
+                            back={showBack}
+                            phone={profile.phone}
+                            email={email}
+                          />
+                        );
+                      })()
+                    }
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Button
+                    onClick={() => setShowBack((v) => !v)}
+                    variant="secondary"
+                    className="bg-zinc-800 hover:bg-zinc-700 border-zinc-700 transition-all duration-200"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Flip Card
+                  </Button>
+                  <Button
+                    onClick={() => downloadSide("front")}
+                    variant="outline"
+                    className="border-zinc-700 hover:bg-zinc-800 transition-all duration-200"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Front
+                  </Button>
+                  <Button
+                    onClick={() => downloadSide("back")}
+                    variant="outline"
+                    className="border-zinc-700 hover:bg-zinc-800 transition-all duration-200"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                </div>
+
+                {/* Info Card */}
+                <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
+                  <p className="text-xs text-orange-200/80 text-center leading-relaxed">
+                    💡 Your digital ID card is ready! Download both sides for printing or digital use.
+                  </p>
+                </div>
               </div>
-            </div>
-
-            {/* Form Fields */}
-            <div className="space-y-4">
-              {/* Name Field */}
-              <ProfileNameInput
-                initialValue={profile.name || userName || ""}
-                onSave={async (name) => {
-                  type ProfileUpdateWithName = TablesUpdate<'profiles'> & { name?: string | null };
-                  const payload: ProfileUpdateWithName = { name };
-                  const { error } = await supabase
-                    .from("profiles")
-                    .update(payload)
-                    .eq("user_id", profile.user_id);
-                  if (error) throw error;
-                  setProfile((prev) => prev ? { ...prev, name } : null);
-                  setUserName(name);
-                  // Update cache
-                  setCachedProfile({
-                    name,
-                    role: profile.role,
-                    ecell_id: profile.ecell_id,
-                    photo_url: profile.photo_url,
-                    lastUpdated: Date.now(),
-                  });
-                }}
-                disabled={Boolean(profile.name) && !isTechnicalAdmin}
-              />
-
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" value={email} disabled />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="ecell-id">E-Cell ID</Label>
-                <Input id="ecell-id" value={profile.ecell_id || "Not assigned"} disabled />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="title">Position</Label>
-                <Input
-                  id="title"
-                  placeholder="e.g., Technical Lead"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  disabled={(profile?.role || "").toLowerCase() !== "technical_admin"}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Input
-                  id="department"
-                  placeholder="e.g., Technology"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  disabled={(profile?.role || "").toLowerCase() !== "technical_admin"}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  placeholder="+91 9876543210"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  disabled={!!profile.phone && !isTechnicalAdmin}
-                />
-              </div>
-
-              <Button onClick={handleSaveProfile} disabled={saving} className="w-full">
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Digital ID Card (single, interactive flip) */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Digital ID Card</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div ref={idCardRef}>
-                {
-                  (() => {
-                    const nameFromEmail = (email: string) => {
-                      const base = email.split("@")[0].replace(/[._-]+/g, " ");
-                      return base.replace(/\b\w/g, (c) => c.toUpperCase());
-                    };
-                    const name = userName || nameFromEmail(email);
-                    const membershipNo = profile.ecell_id || "ECELL-XXXX";
-                    const expiryLabel = formData.title || profile.title || "";
-                    const tier = profile.role === "MENTOR" ? "Platinum" : profile.role === "COMMITTEE" || profile.role === "DEPT_HEAD" ? "Gold" : "Silver";
-
-                    return (
-                      <IdCardMockup
-                        name={name}
-                        membershipNo={membershipNo}
-                        expiryLabel={expiryLabel}
-                        tier={tier}
-                        role={profile.role}
-                        photoUrl={profile.photo_url || undefined}
-                        contactEmail="lostcard@yourcompany.com"
-                        back={showBack}
-                        phone={profile.phone}
-                        email={email}
-                      />
-                    );
-                  })()
-                }
-              </div>
-              
-              <div className="grid grid-cols-3 gap-2">
-                <Button onClick={() => setShowBack((v) => !v)} variant="secondary">
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Flip Card
-                </Button>
-                <Button onClick={() => downloadSide("front")} variant="outline">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Front
-                </Button>
-                <Button onClick={() => downloadSide("back")} variant="outline">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Back
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
