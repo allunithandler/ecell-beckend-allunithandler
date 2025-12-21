@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Ban, Loader2, User, UserPlus, UserMinus } from "lucide-react";
+import { Loader2, User, UserPlus, UserMinus } from "lucide-react";
 import { useProfileCache } from "@/stores/profileCache";
 import { toast } from "sonner";
 
@@ -63,15 +63,12 @@ const Organization = () => {
   const [selectedPositionId, setSelectedPositionId] = useState<string>("");
   const [assigning, setAssigning] = useState(false);
 
-  // Check access - only COMMITTEE and MENTOR can view organization
-  const hasAccess = currentUserProfile &&
-    (currentUserProfile.app_role === 'COMMITTEE' || currentUserProfile.app_role === 'MENTOR');
+  // Everyone can view organization structure
+  // Only MENTOR with level 5 (President) can edit
 
   useEffect(() => {
-    if (hasAccess) {
-      fetchOrganizationData();
-    }
-  }, [hasAccess]);
+    fetchOrganizationData();
+  }, []);
 
   const fetchOrganizationData = async () => {
     try {
@@ -217,19 +214,7 @@ const Organization = () => {
     return profile.name || profile.ecell_id || profile.title || 'Unknown User';
   };
 
-  if (!hasAccess) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 bg-black text-white">
-        <div className="text-center space-y-4">
-          <Ban className="h-16 w-16 mx-auto text-red-500 opacity-50" />
-          <h2 className="text-2xl font-bold">Access Denied</h2>
-          <p className="text-gray-400 max-w-md mx-auto">
-            You don't have permission to view the organization structure.
-          </p>
-        </div>
-      </div>
-    );
-  }
+
 
   if (loading) {
     return (
