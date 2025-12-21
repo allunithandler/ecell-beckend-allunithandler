@@ -7,7 +7,9 @@ export function useTheme() {
     try {
       const stored = localStorage.getItem("theme") as Theme | null;
       if (stored === "dark" || stored === "light") return stored;
-    } catch {}
+    } catch (error) {
+      void error;
+    }
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     return prefersDark ? "dark" : "light";
   });
@@ -21,7 +23,9 @@ export function useTheme() {
     }
     try {
       localStorage.setItem("theme", theme);
-    } catch {}
+    } catch (error) {
+      void error;
+    }
   }, [theme]);
 
   useEffect(() => {

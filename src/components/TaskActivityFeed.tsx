@@ -69,7 +69,7 @@ export const TaskActivityFeed = () => {
       const activities: ActivityItem[] = [];
 
       if (tasksResult.data) {
-        tasksResult.data.forEach((task: any) => {
+        tasksResult.data.forEach((task) => {
           activities.push({
             id: `task-${task.id}`,
             type: "task_created",
@@ -82,7 +82,7 @@ export const TaskActivityFeed = () => {
       }
 
       if (assignmentsResult.data) {
-        assignmentsResult.data.forEach((assignment: any) => {
+        assignmentsResult.data.forEach((assignment) => {
           activities.push({
             id: `assignment-${assignment.id}`,
             type: "task_assigned",
@@ -120,13 +120,13 @@ export const TaskActivityFeed = () => {
       case "task_created":
         return <Plus className="h-4 w-4 text-primary" />;
       case "task_assigned":
-        return <UserPlus className="h-4 w-4 text-info" />;
+        return <UserPlus className="h-4 w-4 text-blue-400" />;
       case "status_changed":
-        return <Clock className="h-4 w-4 text-warning" />;
+        return <Clock className="h-4 w-4 text-orange-400" />;
       case "task_completed":
-        return <CheckCircle2 className="h-4 w-4 text-success" />;
+        return <CheckCircle2 className="h-4 w-4 text-green-400" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
+        return <AlertCircle className="h-4 w-4 text-gray-400" />;
     }
   };
 
@@ -174,20 +174,20 @@ export const TaskActivityFeed = () => {
   };
 
   return (
-    <Card>
+    <Card className="bg-zinc-900 border-zinc-800">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-white">
           <Clock className="h-5 w-5" />
           Recent Activity
         </CardTitle>
-        <CardDescription>Real-time task updates and changes</CardDescription>
+        <CardDescription className="text-gray-400">Real-time task updates and changes</CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading activities...</div>
+            <div className="text-center py-8 text-gray-500">Loading activities...</div>
           ) : activities.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No recent activity</div>
+            <div className="text-center py-8 text-gray-500">No recent activity</div>
           ) : (
             <div className="space-y-4">
               {activities.map((activity) => (
@@ -195,13 +195,13 @@ export const TaskActivityFeed = () => {
                   <div className="flex-shrink-0 mt-1">{getActivityIcon(activity.type)}</div>
                   <Avatar className="h-8 w-8 flex-shrink-0">
                     <AvatarImage src={activity.actor_photo || ""} />
-                    <AvatarFallback className="text-xs">
+                    <AvatarFallback className="text-xs bg-zinc-800 text-gray-300">
                       {activity.actor_name.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm">{getActivityMessage(activity)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm text-gray-300">{getActivityMessage(activity)}</p>
+                    <p className="text-xs text-gray-500 mt-1">
                       {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
                     </p>
                   </div>

@@ -1,60 +1,89 @@
-export type Role = "MENTOR" | "DEPT_HEAD" | "COMMITTEE" | "MEMBER";
+export type AppRole = "MENTOR" | "COMMITTEE" | "MEMBER";
+export type Role = AppRole;
 
-const roleRank: Record<Role, number> = {
-  MENTOR: 3,
-  DEPT_HEAD: 2,
-  COMMITTEE: 1,
+interface UserProfile {
+  role: AppRole;
+  id: string;
+}
+
+interface UserPosition {
+  position_id: string;
+  level: number;
+  end_date: string | null;
+}
+
+// Position levels (authority hierarchy)
+const POSITION_LEVELS = {
+  PRESIDENT: 5,
+  SECRETARY: 4,
+  VICE_PRESIDENT: 3,
+  DOMAIN_HEAD: 2,
+  GENIE: 1,
   MEMBER: 0,
-};
+} as const;
 
-export function hasAtLeast(userRole?: string | null, required?: Role): boolean {
-  if (!userRole || !required) return false;
-  const role = userRole as Role;
-  return (roleRank[role] ?? 0) >= roleRank[required];
+// Get user's highest active position level (defensive)
+export function getPositionLevel(positions: UserPosition[]): number {
+  const activePositions = positions.filter(p => p.end_date === null);
+  const levels = activePositions.map(p => p.level).filter(level => typeof level === 'number');
+  return levels.length > 0 ? Math.max(...levels) : 0;
 }
 
-type SimpleProfile = { role?: string | null; title?: string | null; department?: string | null };
-const normalize = (s?: string | null) => (s || "").toLowerCase();
-
-export function isPresident(title?: string | null): boolean {
-  const t = normalize(title);
-  return t.includes("president") && !t.includes("vice");
+function roleRank(role: string | null | undefined): number {
+  if (role === "MENTOR") return 5;
+  if (role === "COMMITTEE") return 3;
+  return 0;
 }
 
-export function isVicePresident(title?: string | null): boolean {
-  return normalize(title).includes("vice president");
+export function hasRankAtLeast(role: string | null | undefined, minRank: number): boolean {
+  return roleRank(role) >= minRank;
 }
 
-export function isSecretary(title?: string | null): boolean {
-  const t = normalize(title);
-  return t.includes("secretary") && !t.includes("joint");
+export function hasAtLeast(role: string | null | undefined, requiredRole: Role): boolean {
+  return roleRank(role) >= roleRank(requiredRole);
 }
 
-export function isJointSecretary(title?: string | null): boolean {
-  return normalize(title).includes("joint secretary");
+export function isPresident(title: string | null | undefined): boolean {
+  return (title ?? "").toLowerCase().includes("president");
 }
 
-export function isDeptHead(title?: string | null): boolean {
-  const t = normalize(title);
-  return t.includes("head") || t.includes("lead");
+// Check if user is committee (ONLY from role)
+export function isCommittee(profile: UserProfile): boolean {
+  return profile.role === "COMMITTEE" || profile.role === "MENTOR";
 }
 
-export function sameDepartment(a?: SimpleProfile, b?: SimpleProfile): boolean {
-  const ad = normalize(a?.department);
-  const bd = normalize(b?.department);
-  return !!ad && !!bd && ad === bd;
+// Check if user has minimum position level
+export function hasMinLevel(positions: UserPosition[], minLevel: number): boolean {
+  return getPositionLevel(positions) >= minLevel;
 }
 
-export function canAssignTo(assigner: SimpleProfile, assignee: SimpleProfile): boolean {
-  if (hasAtLeast(assigner.role, "MENTOR")) return true;
-  if (isPresident(assigner.title)) return true;
-  if (hasAtLeast(assigner.role, "COMMITTEE")) return sameDepartment(assigner, assignee);
-  return false;
-}
-
+// Permission functions
 export const permissions = {
-  manageEvents: (role?: string | null) => hasAtLeast(role, "MENTOR"),
-  createTasks: (role?: string | null) => hasAtLeast(role, "COMMITTEE"),
-  assignTasks: (role?: string | null) => hasAtLeast(role, "COMMITTEE"),
-  markAttendance: (role?: string | null) => hasAtLeast(role, "COMMITTEE"),
+  // Committee and above can manage events
+  manageEvents: (profile: UserProfile) => 
+    profile.role === "MENTOR" || profile.role === "COMMITTEE",
+  
+  // Committee and above can create/assign tasks
+  createTasks: (profile: UserProfile) => 
+    isCommittee(profile),
+  
+  assignTasks: (profile: UserProfile) => 
+    isCommittee(profile),
+  
+  // Committee and above can mark attendance
+  markAttendance: (profile: UserProfile) => 
+    isCommittee(profile),
+  
+  // Genie level and above can view organization
+  viewOrganization: (profile: UserProfile, positions: UserPosition[]) => 
+    hasMinLevel(positions, POSITION_LEVELS.GENIE) || isCommittee(profile),
+  
+  // President level can manage positions
+  managePositions: (profile: UserProfile, positions: UserPosition[]) => 
+    hasMinLevel(positions, POSITION_LEVELS.PRESIDENT),
 };
+
+// Check if user can assign tasks to another user
+export function canAssignTo(assignerProfile: { role: string | null | undefined }, assigneeProfile: { role: string | null | undefined }): boolean {
+  return roleRank(assignerProfile.role) > roleRank(assigneeProfile.role);
+}

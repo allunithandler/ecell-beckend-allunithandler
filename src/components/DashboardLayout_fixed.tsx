@@ -16,6 +16,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AppRole, permissions, isCommittee } from "@/lib/rbac";
 import { useProfileCache } from "@/stores/profileCache";
 import ThemeToggle from "@/components/ThemeToggle";
 import Noise from "@/components/Noise";
@@ -25,11 +26,23 @@ interface DashboardLayoutProps {
   children: ReactNode;
 }
 
+interface UserProfile {
+  app_role: AppRole;
+  id: string;
+}
+
+interface UserPosition {
+  position_id: string;
+  level: number;
+  end_date: string | null;
+}
+
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<(Record<string, unknown> & { role: string }) | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userPositions, setUserPositions] = useState<UserPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -37,21 +50,31 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   useEffect(() => {
     let mounted = true;
     
-    const fetchUserProfile = async (userId: string) => {
+    const fetchUserData = async (userId: string) => {
       try {
+        // Fetch profile with app_role
         const { data: profile } = await supabase
           .from("profiles")
-          .select("*")
+          .select("id, app_role")
           .eq("user_id", userId)
           .maybeSingle();
 
+        if (!profile || !mounted) return;
+
+        // Fetch active positions
+        const { data: positions } = await supabase
+          .from("user_positions")
+          .select("position_id, level, end_date")
+          .eq("user_id", profile.id);
+
         if (mounted) {
-          setUserProfile(profile || { role: "MEMBER", user_id: userId });
+          setUserProfile({ app_role: profile.app_role as AppRole, id: profile.id });
+          setUserPositions(positions || []);
         }
       } catch (error) {
         if (mounted) {
-          setUserProfile({ role: "MEMBER", user_id: userId });
-          void error;
+          setUserProfile({ app_role: "MEMBER", id: userId });
+          setUserPositions([]);
         }
       }
     };
@@ -64,18 +87,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         if (!session) {
           setUser(null);
           setUserProfile(null);
+          setUserPositions([]);
           navigate("/auth", { replace: true });
           return;
         }
 
         setUser(session.user);
-        void fetchUserProfile(session.user.id);
+        await fetchUserData(session.user.id);
       } catch (error) {
         if (!mounted) return;
         setUser(null);
         setUserProfile(null);
+        setUserPositions([]);
         navigate("/auth", { replace: true });
-        void error;
       } finally {
         if (mounted) setLoading(false);
       }
@@ -83,18 +107,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
-      if (event === "SIGNED_OUT" || !session) {
+      if (event === "SIGNED_OUT" || event === "USER_DELETED" || !session) {
         setUser(null);
         setUserProfile(null);
+        setUserPositions([]);
         navigate("/auth", { replace: true });
         return;
       }
       
       setUser(session.user);
-      void fetchUserProfile(session.user.id);
+      await fetchUserData(session.user.id);
     });
 
     return () => {
@@ -121,15 +146,22 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   const getMenuItems = () => {
+    if (!userProfile) return [];
+
     const baseItems = [
       { icon: Calendar, label: "Events", path: "/events" },
-      { icon: Users, label: "Organization", path: "/organization" },
       { icon: UserCircle, label: "Profile", path: "/profile" },
     ];
 
-    // Only show restricted items to specific roles
     const restrictedItems = [];
-    if (userProfile && ["MENTOR", "COMMITTEE"].includes(userProfile.role)) {
+    
+    // Organization - Genie level and above or committee
+    if (permissions.viewOrganization(userProfile, userPositions)) {
+      restrictedItems.push({ icon: Users, label: "Organization", path: "/organization" });
+    }
+
+    // Tasks and Attendance - Committee and above
+    if (isCommittee(userProfile)) {
       restrictedItems.push({ icon: CheckSquare, label: "Attendance", path: "/attendance" });
       restrictedItems.push({ icon: CheckSquare, label: "Tasks", path: "/tasks" });
     }

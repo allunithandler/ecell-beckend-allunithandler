@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, MapPin, Users, Plus, Loader2, Upload, CheckCircle2, XCircle, HelpCircle, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
-import { hasAtLeast, isPresident } from "@/lib/rbac";
+import { hasRankAtLeast, isPresident } from "@/lib/rbac";
 
 interface Event {
   id: string;
@@ -297,7 +297,7 @@ const Events = () => {
     setEditingEvent(null);
   };
 
-  const canManageEvents = hasAtLeast(userProfile?.role, "MENTOR") || isPresident(userProfile?.title);
+  const canManageEvents = hasRankAtLeast(userProfile?.role, 3) || isPresident(userProfile?.title);
 
   if (loading) {
     return (
@@ -313,7 +313,7 @@ const Events = () => {
         {/* Header Section */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Events</h1>
+            <h2 className="text-3xl font-bold text-white mb-2">Events</h2>
             <p className="text-gray-400">Upcoming E-Cell events and activities</p>
           </div>
           {canManageEvents && (

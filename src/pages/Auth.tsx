@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
- 
+import Noise from "@/components/Noise";
 import { toast } from "sonner";
 
 const Auth = () => {
@@ -87,21 +87,28 @@ const Auth = () => {
   
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-4">
-      <Card className="w-full max-w-md bg-black border-gray-800">
-        <CardHeader className="space-y-1">
+    <div className="min-h-screen flex items-center justify-center bg-black p-4 sm:p-6 lg:p-8 relative">
+      <Noise
+        patternSize={250}
+        patternScaleX={1}
+        patternScaleY={1}
+        patternRefreshInterval={2}
+        patternAlpha={11}
+      />
+      <Card className="w-full max-w-sm sm:max-w-md bg-black border-gray-800 relative z-10">
+        <CardHeader className="space-y-2 text-center pb-6">
           <div className="flex items-center justify-center mb-4">
-            <div className="text-2xl font-bold text-primary">E-Cell GLA</div>
+            <div className="text-2xl sm:text-3xl font-bold text-primary">E-Cell GLA</div>
           </div>
-          <CardTitle className="text-2xl text-center text-white">Welcome</CardTitle>
-          <CardDescription className="text-center text-gray-400">
+          <CardTitle className="text-xl sm:text-2xl text-white">Welcome</CardTitle>
+          <CardDescription className="text-sm sm:text-base text-gray-400">
             Management Platform
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+        <CardContent className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="login-email" className="text-white">Email</Label>
+              <Label htmlFor="login-email" className="text-white text-sm font-medium">Email</Label>
               <Input
                 id="login-email"
                 type="email"
@@ -109,21 +116,25 @@ const Auth = () => {
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 required
-                className="bg-gray-900 border-gray-700 text-white focus:ring-primary"
+                className="bg-gray-900 border-gray-700 text-white focus:ring-primary h-12 text-base"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="login-password" className="text-white">Password</Label>
+              <Label htmlFor="login-password" className="text-white text-sm font-medium">Password</Label>
               <Input
                 id="login-password"
                 type="password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 required
-                className="bg-gray-900 border-gray-700 text-white focus:ring-primary"
+                className="bg-gray-900 border-gray-700 text-white focus:ring-primary h-12 text-base"
               />
             </div>
-            <Button type="submit" className="w-full bg-black border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-black border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all h-12 text-base font-medium" 
+              disabled={loading}
+            >
               {loading ? "Logging in..." : "Login"}
             </Button>
           </form>

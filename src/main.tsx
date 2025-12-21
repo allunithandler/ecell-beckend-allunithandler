@@ -14,7 +14,9 @@ import "./index.css";
     } else {
       root.classList.remove("dark");
     }
-  } catch {}
+  } catch (error) {
+    void error;
+  }
 })();
 
 createRoot(document.getElementById("root")!).render(<App />);

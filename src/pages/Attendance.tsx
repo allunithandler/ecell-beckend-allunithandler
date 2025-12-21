@@ -50,9 +50,14 @@ interface AttendanceSession {
   created_by: string;
 }
 
+type SessionType = AttendanceSession["session_type"];
+type AttendanceStatus = AttendanceRecord["status"];
+type HistorySessionType = SessionType | "all";
+type HistoryStatus = AttendanceStatus | "all";
+
 const Attendance = () => {
   const [date, setDate] = useState<Date>(new Date());
-  const [sessionType, setSessionType] = useState<string>("GENERAL");
+  const [sessionType, setSessionType] = useState<SessionType>("GENERAL");
   const [sessionName, setSessionName] = useState<string>("");
   const [sessionLocation, setSessionLocation] = useState<string>("");
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -65,8 +70,8 @@ const Attendance = () => {
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
-  const [historySessionType, setHistorySessionType] = useState<string>("all");
-  const [historyStatus, setHistoryStatus] = useState<string>("all");
+  const [historySessionType, setHistorySessionType] = useState<HistorySessionType>("all");
+  const [historyStatus, setHistoryStatus] = useState<HistoryStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [memberFilter, setMemberFilter] = useState<string>("");
 
@@ -83,9 +88,7 @@ const Attendance = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "attendance" }, () => {
         fetchAttendanceHistory();
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "attendance_sessions" }, () => {
-        fetchSessions();
-      })
+      // Temporarily disabled - attendance_sessions table not available
       .subscribe();
 
     return () => {
@@ -110,7 +113,7 @@ const Attendance = () => {
 
       if (profile) {
         setCurrentUserProfile(profile);
-        const canMark = profile.role === "MENTOR" || profile.role === "COMMITTEE" || profile.role === "DEPT_HEAD";
+        const canMark = profile.role === "MENTOR" || profile.role === "COMMITTEE";
         setCanMarkAttendance(canMark);
       }
     } catch (error) {
@@ -141,7 +144,8 @@ const Attendance = () => {
         .select(
           `
           *,
-          profile:user_id(id, ecell_id, title, role, department, photo_url, user_id)
+          profile:profiles!attendance_user_id_fkey(id, ecell_id, title, role, department, photo_url, user_id),
+          marker:profiles!attendance_marked_by_fkey(id, ecell_id, title, role, department, photo_url, user_id)
         `
         )
         .gte("date", format(startDate, "yyyy-MM-dd"))
@@ -149,11 +153,11 @@ const Attendance = () => {
         .order("date", { ascending: false });
 
       if (historySessionType !== "all") {
-        query = query.eq("session_type", historySessionType as any);
+        query = query.eq("session_type", historySessionType);
       }
 
       if (historyStatus !== "all") {
-        query = query.eq("status", historyStatus as any);
+        query = query.eq("status", historyStatus);
       }
 
       if (memberFilter) {
@@ -164,40 +168,40 @@ const Attendance = () => {
 
       if (error) throw error;
 
-      let records = (data || []).map((record: any) => ({
-        ...record,
-        profile: Array.isArray(record.profile) ? record.profile[0] : record.profile,
-      }));
+      type RawHistoryRecord = Omit<AttendanceRecord, "profile" | "marker"> & {
+        profile?: Profile | Profile[] | null;
+        marker?: Profile | Profile[] | null;
+      };
+
+      let records: AttendanceRecord[] = ((data || []) as RawHistoryRecord[]).map((record) => {
+        const normalizedProfile = Array.isArray(record.profile) ? record.profile[0] : record.profile;
+        const normalizedMarker = Array.isArray(record.marker) ? record.marker[0] : record.marker;
+        return {
+          ...record,
+          profile: normalizedProfile ?? undefined,
+          marker: normalizedMarker ?? undefined,
+        };
+      });
 
       if (searchQuery) {
         records = records.filter(
-          (record: any) =>
+          (record) =>
             record.profile?.ecell_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             record.profile?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             record.session_name?.toLowerCase().includes(searchQuery.toLowerCase())
         );
       }
 
-      setAttendanceHistory(records as AttendanceRecord[]);
-    } catch (error: any) {
+      setAttendanceHistory(records);
+    } catch (error: unknown) {
       console.error("Error fetching attendance history:", error);
       toast.error("Failed to load attendance history");
     }
   };
 
   const fetchSessions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("attendance_sessions")
-        .select("*")
-        .order("session_date", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      setSessions(data || []);
-    } catch (error) {
-      console.error("Error fetching sessions:", error);
-    }
+    // Temporarily disabled - attendance_sessions table not available
+    setSessions([]);
   };
 
   const handleMarkAllPresent = () => {
@@ -227,7 +231,7 @@ const Attendance = () => {
           user_id: profile.id,
           date: dateStr,
           status: "PRESENT" as const,
-          session_type: sessionType as any,
+          session_type: sessionType,
           session_name: sessionName || undefined,
           location: sessionLocation || undefined,
           marked_by: currentUserProfile!.id,
@@ -245,8 +249,9 @@ const Attendance = () => {
       setSessionName("");
       setSessionLocation("");
       fetchAttendanceHistory();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save attendance");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to save attendance";
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -356,7 +361,7 @@ const Attendance = () => {
 
                   <div className="space-y-2">
                     <Label className="text-gray-300">Session Type</Label>
-                    <Select value={sessionType} onValueChange={setSessionType}>
+                    <Select value={sessionType} onValueChange={(value) => setSessionType(value as SessionType)}>
                       <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
                         <SelectValue />
                       </SelectTrigger>
@@ -527,7 +532,7 @@ const Attendance = () => {
                         className="pl-9 bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500 focus:ring-primary"
                       />
                     </div>
-                    <Select value={historySessionType} onValueChange={setHistorySessionType}>
+                    <Select value={historySessionType} onValueChange={(value) => setHistorySessionType(value as HistorySessionType)}>
                       <SelectTrigger className="w-full sm:w-[150px] bg-zinc-800 border-zinc-700 text-white">
                         <SelectValue placeholder="Session Type" />
                       </SelectTrigger>
@@ -539,7 +544,7 @@ const Attendance = () => {
                         <SelectItem value="EVENT" className="text-white focus:bg-zinc-800">Event</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Select value={historyStatus} onValueChange={setHistoryStatus}>
+                    <Select value={historyStatus} onValueChange={(value) => setHistoryStatus(value as HistoryStatus)}>
                       <SelectTrigger className="w-full sm:w-[150px] bg-zinc-800 border-zinc-700 text-white">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
