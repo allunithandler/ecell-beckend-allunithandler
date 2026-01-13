@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Noise from "@/components/Noise";
 import { toast } from "sonner";
 import { Mail, Lock, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
-import { sendEmail, getSignupWelcomeEmailHTML, getPasswordResetEmailHTML, getPasswordChangedEmailHTML } from "@/lib/email_templates";
 
 type AuthMode = "login" | "signup" | "verify" | "reset";
 
@@ -23,27 +22,7 @@ const Auth = () => {
   const [resetEmail, setResetEmail] = useState("");
   const [sessionUser, setSessionUser] = useState<Session | null>(null);
 
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setSessionUser(session);
-        redirectUser(session.user.id);
-      }
-    };
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setSessionUser(session);
-        redirectUser(session.user.id);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const redirectUser = async (userId: string) => {
+  const redirectUser = useCallback(async (userId: string) => {
     try {
       const { data: profile } = await supabase
         .from("profiles")
@@ -59,7 +38,32 @@ const Auth = () => {
     } catch {
       navigate("/events");
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setSessionUser(session);
+        redirectUser(session.user.id);
+      }
+    };
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        setSessionUser(session);
+        toast.success("Successfully signed in!");
+        redirectUser(session.user.id);
+      } else if (event === 'PASSWORD_RECOVERY') {
+        toast.info("Please enter your new password");
+      } else if (event === 'USER_UPDATED') {
+        toast.success("Your account has been updated");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, redirectUser]);
 
   const validateEmail = (email: string) => {
     return email.includes("@");
@@ -95,6 +99,9 @@ const Auth = () => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`,
+        },
       });
 
       if (error) throw error;
@@ -103,7 +110,7 @@ const Auth = () => {
         // Profile creation is now handled by a database trigger (handle_new_user)
         // This ensures profile is created even if client-side operations fail
         
-        toast.success("Signup successful!");
+        toast.success("Signup successful! Check your email to verify your account.");
         setMode("verify");
         setEmail("");
         setPassword("");
@@ -143,17 +150,11 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail);
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
 
       if (error) throw error;
-
-      // Email sending disabled for now
-      // const resetUrl = `${window.location.origin}/auth?mode=reset`;
-      // await sendEmail({
-      //   to: resetEmail,
-      //   subject: "Reset Your E-Cell GLA Password",
-      //   html: getPasswordResetEmailHTML(resetUrl),
-      // });
 
       toast.success("Password reset email sent! Check your inbox.");
       setResetEmail("");
