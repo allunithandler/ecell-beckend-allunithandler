@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "re_JXtNeT9k_FQCxZEMtxRDGA4XnURU3vrpc";
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
 interface EmailRequest {
   to: string;
@@ -30,6 +30,16 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: "Missing required fields: to, subject, html" }),
         {
           status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!RESEND_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "Missing RESEND_API_KEY secret" }),
+        {
+          status: 500,
           headers: { "Content-Type": "application/json" },
         }
       );

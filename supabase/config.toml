@@ -1,1 +1,5 @@
 project_id = "hcaowhapblcxrpwymyes"
+
+# Allow database triggers to call the email edge function without a user JWT.
+[functions.send-email]
+verify_jwt = false

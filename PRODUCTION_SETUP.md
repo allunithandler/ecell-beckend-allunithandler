@@ -99,7 +99,7 @@ BEGIN
     confirmation_url := 'https://hcaowhapblcxrpwymyes.supabase.co/auth/v1/verify?token=' || 
                        NEW.confirmation_token || 
                        '&type=signup&redirect_to=' || 
-                       encode(app_url || '/auth', 'escape');
+                       (app_url || '/auth');
     
     email_html := public.get_confirmation_email_html(confirmation_url, NEW.email);
     

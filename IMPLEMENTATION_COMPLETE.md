@@ -117,7 +117,7 @@ All critical authentication issues have been successfully resolved and the Resen
 
 ### Resend Details
 ```
-API Key: re_JXtNeT9k_FQCxZEMtxRDGA4XnURU3vrpc
+API Key: (set via `RESEND_API_KEY` secret)
 Sender: E-Cell GLA <noreply@ecell-gla.com>
 Domain: ecell-gla.com
 ```
