@@ -32,10 +32,10 @@ const ProtectedRoute = ({ children, requireCommittee, requireMinLevel, redirectT
           return;
         }
 
-        // Fetch profile with app_role
+        // Fetch profile with role
         const { data: profile } = await supabase
           .from("profiles")
-          .select("id, app_role")
+          .select("id, role")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -55,7 +55,7 @@ const ProtectedRoute = ({ children, requireCommittee, requireMinLevel, redirectT
           .is("end_date", null);
 
         const userPositions = positions || [];
-        const userProfile = { app_role: profile.app_role as AppRole, id: profile.id };
+        const userProfile = { role: profile.role as AppRole, id: profile.id };
 
         // FIX: ProtectedRoute must fail closed.
         // If no authorization requirements are provided, deny access to prevent silent fallthrough.

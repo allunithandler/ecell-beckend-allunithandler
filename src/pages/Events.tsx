@@ -253,11 +253,16 @@ const Events = () => {
 
       const { error } = await supabase
         .from("event_participants")
-        .upsert({
-          event_id: eventId,
-          user_id: userProfile.id,
-          status,
-        });
+        .upsert(
+          {
+            event_id: eventId,
+            user_id: userProfile.id,
+            status,
+          },
+          {
+            onConflict: 'event_id,user_id'
+          }
+        );
 
       if (error) throw error;
 
@@ -310,12 +315,7 @@ const Events = () => {
   return (
     <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header Section */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-3xl font-bold text-white mb-2">Events</h2>
-            <p className="text-gray-400">Upcoming E-Cell events and activities</p>
-          </div>
+        <div className="flex justify-end mb-8">
           {canManageEvents && (
             <Dialog open={isCreateOpen} onOpenChange={(open) => {
               setIsCreateOpen(open);

@@ -7,26 +7,21 @@ import { makeProfileQR } from "@/lib/qr";
 
 interface IdCardMockupProps {
   name: string;
-  membershipNo: string;
-  expiryLabel: string;
-  tier: string; // e.g., Platinum, Gold, Standard
-  role?: string;
+  rollNo: string;
+  email: string;
+  phone: string;
+  appRole: string;
+  ecellId: string;
   photoUrl?: string | null;
-  contactEmail?: string;
-  back?: boolean; // when true, show back side
-  phone?: string | null;
-  email?: string | null;
+  back?: boolean;
 }
 
-// Realistic product-style front/back membership card with reflective surface
 const IdCardMockup = forwardRef<HTMLDivElement, IdCardMockupProps>(function IdCardMockup(
-  { name, membershipNo, expiryLabel, tier, role, photoUrl, contactEmail = "lostcard@yourcompany.com", back = false, phone = null, email = null },
+  { name, rollNo, email, phone, appRole, ecellId, photoUrl, back = false },
   ref
 ) {
-  // Base dark metallic gradient and subtle dot pattern
   const baseCard = cn(
     "relative rounded-xl border-2 overflow-hidden shadow-xl",
-    // Matte black: reduced specular highlights, subtle texture
     "bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.05),transparent_35%),radial-gradient(circle_at_85%_80%,rgba(255,255,255,0.04),transparent_35%),linear-gradient(135deg,#0b0c0f,#0e1115,#12151a)]",
     "border-[#2a2d33]"
   );
@@ -37,24 +32,21 @@ const IdCardMockup = forwardRef<HTMLDivElement, IdCardMockupProps>(function IdCa
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const url = await makeProfileQR({ name, phone, email, ecellId: membershipNo });
+      const url = await makeProfileQR({ name, phone, email, ecellId });
       if (mounted) setQrUrl(url);
     })();
     return () => {
       mounted = false;
     };
-  }, [name, phone, email, membershipNo]);
+  }, [name, phone, email, ecellId]);
 
-  // Determine badge text + color based on role / tier
   const getBadgeInfo = () => {
-    const councilRoles = ["COMMITTEE", "DEPT_HEAD", "MENTOR"];
     let badgeLabel = "Member";
-    let badgeColorClass = "px-3 py-1 rounded-full bg-gray-200 text-gray-900"; // Silver default
+    let badgeColorClass = "px-3 py-1 rounded-full bg-gray-200 text-gray-900";
 
-    const userObj: { role: string; tier: string } = { role: role ?? "", tier };
-    if (councilRoles.includes(userObj.role) || userObj.tier !== "Silver") {
+    if (appRole === "COMMITTEE" || appRole === "MENTOR") {
       badgeLabel = "COUNCIL";
-      badgeColorClass = "px-3 py-1 rounded-full bg-yellow-500 text-black"; // Gold badge
+      badgeColorClass = "px-3 py-1 rounded-full bg-yellow-500 text-black";
     }
 
     return { badgeLabel, badgeColorClass };
@@ -64,27 +56,28 @@ const IdCardMockup = forwardRef<HTMLDivElement, IdCardMockupProps>(function IdCa
 
   return (
     <div ref={ref} className="relative">
-      
-
-      {/* Flip container */}
       <div className="relative mx-auto" style={{ perspective: "1000px" }}>
         <div
           className={cn(baseCard, "h-48 w-[420px] transition-transform duration-500")}
-          style={{ transformStyle: "preserve-3d", transformOrigin: "center center", transform: back ? "rotateY(180deg)" : "rotateY(0deg)", willChange: "transform" }}
+          style={{ 
+            transformStyle: "preserve-3d", 
+            transformOrigin: "center center", 
+            transform: back ? "rotateY(180deg)" : "rotateY(0deg)", 
+            willChange: "transform" 
+          }}
         >
+          {/* Front Side */}
           <div
             className="absolute inset-0"
             style={{ transform: "rotateY(0deg)", display: back ? "none" : "block" }}
           >
             {/* Accent stripe */}
             <div className="absolute left-0 top-0 h-full w-3 bg-gradient-to-b from-gray-300/70 to-gray-500/70" />
-            {/* Shine */}
+            {/* Shine effects */}
             <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-white/6 via-transparent to-transparent" />
-            {/* Diagonal soft reflection band */}
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute -top-6 right-10 h-[160%] w-1/2 rotate-[18deg] bg-gradient-to-b from-white/10 via-transparent to-transparent" />
             </div>
-            {/* Dots */}
             <div className={cn("absolute inset-0", dottedOverlay.replace("opacity-30", "opacity-15"))} />
 
             {/* Header */}
@@ -96,7 +89,7 @@ const IdCardMockup = forwardRef<HTMLDivElement, IdCardMockupProps>(function IdCa
               <Badge className={badgeColorClass}>{badgeLabel}</Badge>
             </div>
 
-            {/* GLA Logo - Bottom Right */}
+            {/* GLA Logo */}
             <div className="absolute bottom-4 right-4 z-10">
               <img 
                 src="/gla logo.ico" 
@@ -106,7 +99,7 @@ const IdCardMockup = forwardRef<HTMLDivElement, IdCardMockupProps>(function IdCa
               />
             </div>
 
-            {/* Main */}
+            {/* Main Content */}
             <div className="relative z-10 mt-4 px-5 flex items-center gap-4">
               <Avatar className="h-16 w-16 ring-2 ring-gray-300/70 shadow-md rounded-full">
                 <AvatarImage src={photoUrl || undefined} />
@@ -115,14 +108,23 @@ const IdCardMockup = forwardRef<HTMLDivElement, IdCardMockupProps>(function IdCa
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <div className="text-white font-semibold tracking-tight text-sm md:text-base">{name}</div>
-                <div className="text-xs text-gray-300">Membership No: {membershipNo}</div>
-                <div className="text-xs text-gray-400">Position: {expiryLabel}</div>
+                <div className="text-white font-semibold tracking-tight text-sm md:text-base">
+                  {name}
+                </div>
+                <div className="text-xs text-gray-300">
+                  Roll No: {rollNo}
+                </div>
+                <div className="text-xs text-gray-300">
+                  ID: {ecellId}
+                </div>
+                <div className="text-xs text-gray-400">
+                  Role: {appRole}
+                </div>
               </div>
-              {/* No NFC icon per request */}
             </div>
           </div>
 
+          {/* Back Side */}
           <div
             className="absolute inset-0"
             style={{ transform: "rotateY(180deg)", display: back ? "block" : "none" }}
@@ -133,7 +135,8 @@ const IdCardMockup = forwardRef<HTMLDivElement, IdCardMockupProps>(function IdCa
             <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-white/10 via-transparent to-white/5" />
             {/* Magnetic strip */}
             <div className="absolute top-4 left-5 right-5 h-8 bg-black/80 rounded-sm" />
-            {/* QR placeholder */}
+            
+            {/* QR Code */}
             <div className="absolute bottom-6 left-5 w-28 h-28 bg-white rounded-md border border-black/10 grid place-items-center overflow-hidden">
               {qrUrl ? (
                 <img src={qrUrl} alt="QR" className="w-full h-full object-contain" />
@@ -141,19 +144,21 @@ const IdCardMockup = forwardRef<HTMLDivElement, IdCardMockupProps>(function IdCa
                 <span className="text-[10px] text-black/80 text-center px-1">QR CODE</span>
               )}
             </div>
-            {/* Info */}
-            <div className="absolute bottom-6 right-5 text-[10px] text-white text-right">
-              <div>{membershipNo}</div>
-              <div>Contact: {contactEmail}</div>
+            
+            {/* Contact Info */}
+            <div className="absolute bottom-6 right-5 text-[10px] text-white text-right space-y-1">
+              <div>Email: {email !== "Not available" ? email : "Not available"}</div>
+              <div>Phone: {phone !== "Not available" ? phone : "Not available"}</div>
+              <div>E-Cell ID: {ecellId !== "Not assigned" ? ecellId : "Not assigned"}</div>
             </div>
+            
             {/* Terms */}
             <div className="absolute left-5 right-5 bottom-2 text-[9px] text-gray-200">
-              <div>Property of E-Cell GLA • If found, please contact the email above.</div>
+              <div>Property of E-Cell GLA • If found, please contact above details.</div>
             </div>
           </div>
         </div>
       </div>
-
     </div>
   );
 });

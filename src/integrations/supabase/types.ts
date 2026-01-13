@@ -201,43 +201,37 @@ export type Database = {
       }
       profiles: {
         Row: {
-          created_at: string
-          department: string | null
-          ecell_id: string | null
           id: string
-          phone: string | null
-          photo_url: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          title: string | null
-          updated_at: string
           user_id: string
-          year: number
+          name: string | null
+          roll_no: string | null
+          phone: string | null
+          email: string | null
+          app_role: Database["public"]["Enums"]["app_role"]
+          ecell_id: string | null
+          photo_url: string | null
+          department: string | null
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          created_at?: string
-          department?: string | null
-          ecell_id?: string | null
           id?: string
-          phone?: string | null
-          photo_url?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          title?: string | null
-          updated_at?: string
           user_id: string
-          year: number
+          name?: string | null
+          roll_no?: string | null
+          phone?: string | null
+          email?: string | null
+          app_role?: Database["public"]["Enums"]["app_role"]
+          ecell_id?: string | null
+          photo_url?: string | null
+          department?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          created_at?: string
-          department?: string | null
-          ecell_id?: string | null
-          id?: string
+          name?: string | null
           phone?: string | null
           photo_url?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          title?: string | null
-          updated_at?: string
-          user_id?: string
-          year?: number
         }
         Relationships: []
       }
@@ -356,6 +350,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "MENTOR" | "COMMITTEE" | "MEMBER"
       attendance_status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED"
       event_rsvp_status: "GOING" | "MAYBE" | "NOT_GOING" | "maybe"
       session_type: "MEETING" | "WORKSHOP" | "EVENT" | "GENERAL"
@@ -488,6 +483,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["MENTOR", "COMMITTEE", "MEMBER"],
       attendance_status: ["PRESENT", "ABSENT", "LATE", "EXCUSED"],
       event_rsvp_status: ["GOING", "MAYBE", "NOT_GOING", "maybe"],
       session_type: ["MEETING", "WORKSHOP", "EVENT", "GENERAL"],

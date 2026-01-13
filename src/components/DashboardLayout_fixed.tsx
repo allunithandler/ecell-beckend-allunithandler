@@ -27,7 +27,7 @@ interface DashboardLayoutProps {
 }
 
 interface UserProfile {
-  app_role: AppRole;
+  role: AppRole;
   id: string;
 }
 
@@ -52,10 +52,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     
     const fetchUserData = async (userId: string) => {
       try {
-        // Fetch profile with app_role
+        // Fetch profile with role
         const { data: profile } = await supabase
           .from("profiles")
-          .select("id, app_role")
+          .select("id, role")
           .eq("user_id", userId)
           .maybeSingle();
 
@@ -68,12 +68,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           .eq("user_id", profile.id);
 
         if (mounted) {
-          setUserProfile({ app_role: profile.app_role as AppRole, id: profile.id });
+          setUserProfile({ role: profile.role as AppRole, id: profile.id });
           setUserPositions(positions || []);
         }
       } catch (error) {
         if (mounted) {
-          setUserProfile({ app_role: "MEMBER", id: userId });
+          setUserProfile({ role: "MEMBER", id: userId });
           setUserPositions([]);
         }
       }
