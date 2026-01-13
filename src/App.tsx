@@ -12,6 +12,7 @@ import Profile from "./pages/Profile";
 import Events from "./pages/Events";
 import Organization from "./pages/Organization";
 import FacultyView from "./pages/FacultyView";
+import EmailTestPage from "./pages/EmailTestPage";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 
@@ -52,6 +53,7 @@ const App = () => {
           <Route path="/" element={<Navigate to="/auth" replace />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/faculty/:token" element={<FacultyView />} />
+          <Route path="/email-test" element={<EmailTestPage />} />
           <Route path="/attendance" element={<DashboardLayout><Attendance /></DashboardLayout>} />
           <Route path="/tasks" element={<DashboardLayout><Tasks /></DashboardLayout>} />
           <Route path="/events" element={<DashboardLayout><Events /></DashboardLayout>} />

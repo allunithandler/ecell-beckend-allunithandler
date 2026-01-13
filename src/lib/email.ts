@@ -1,5 +1,5 @@
-const RESEND_API_KEY = "re_JXtNeT9k_FQCxZEMtxRDGA4XnURU3vrpc";
-const RESEND_API_URL = "https://api.resend.com/emails";
+// Email sending is now handled by Supabase Edge Function
+// This file is kept for backward compatibility but emails are sent via database triggers
 
 interface EmailParams {
   to: string;
@@ -8,30 +8,9 @@ interface EmailParams {
 }
 
 export async function sendEmail({ to, subject, html }: EmailParams) {
-  try {
-    const response = await fetch(RESEND_API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "noreply@ecell-gla.com",
-        to,
-        subject,
-        html,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Resend API error: ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Email send error:", error);
-    throw error;
-  }
+  console.warn("Direct email sending is deprecated. Emails are now handled by Supabase triggers.");
+  // For now, this is a no-op. All email sending happens via database triggers
+  return { success: true, message: "Email handled by server" };
 }
 
 export function getVerificationEmailHTML(confirmationUrl: string): string {
