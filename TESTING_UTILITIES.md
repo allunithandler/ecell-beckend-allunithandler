@@ -289,7 +289,7 @@ supabase secrets list
 ```bash
 # Test Resend API directly
 curl https://api.resend.com/emails \
-  -H "Authorization: Bearer re_JXtNeT9k_FQCxZEMtxRDGA4XnURU3vrpc" \
+  -H "Authorization: Bearer $RESEND_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "from": "noreply@ecell-gla.com",

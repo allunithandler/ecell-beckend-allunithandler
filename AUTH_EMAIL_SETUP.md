@@ -12,7 +12,7 @@ A Supabase Edge Function that handles all email sending via the Resend API.
 
 **Features:**
 - Sends transactional emails (confirmation, password reset, etc.)
-- Uses Resend API with API key: `re_JXtNeT9k_FQCxZEMtxRDGA4XnURU3vrpc`
+- Uses Resend API via the `RESEND_API_KEY` secret (set in Supabase Edge Function secrets)
 - Sender email: `E-Cell GLA <noreply@ecell-gla.com>`
 - CORS-enabled for security
 

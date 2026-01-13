@@ -28,7 +28,7 @@
   - `on_auth_user_recovery_send_email` - Fires on password reset request
 
 **Resend Configuration:**
-- API Key: `re_JXtNeT9k_FQCxZEMtxRDGA4XnURU3vrpc`
+- API Key: set via `RESEND_API_KEY` secret (Supabase Edge Function secrets)
 - Sender: `E-Cell GLA <noreply@ecell-gla.com>`
 - Edge Function URL: `https://hcaowhapblcxrpwymyes.supabase.co/functions/v1/send-email`
 
